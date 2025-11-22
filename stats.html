@@ -236,7 +236,7 @@
         Stats
         <span>Golby Pally Darts Open</span>
       </h1>
-      <p class="small">Aggregierte Werte aller gespeicherten Matches aus Firestore.</p>
+      <p class="small">Standardansicht aggregiert auf alle Spiler für individuelle Ansicht unten filtern.</p>
     </div>
     <nav class="nav-links">
       <a href="index.html">⬅ Scoreboard</a>
@@ -290,10 +290,10 @@
 
   <!-- Chart: Score-Verlauf -->
   <section class="card">
-    <h2>Score-Verlauf über die Zeit</h2>
-    <p class="small" id="chart-desc">
-      Ø Punkte pro Pfeil nach Datum – für alle Spieler.
-    </p>
+  <h2>Score-Verlauf pro Spiel</h2>
+  <p class="small" id="chart-desc">
+    Ø Punkte pro Aufnahme pro Spiel – für alle Spieler.
+  </p>
     <div class="chart-container">
       <canvas id="scoreTimeChart"></canvas>
     </div>
@@ -311,7 +311,7 @@
           <th>Gegner</th>
           <th>Spiele</th>
           <th>W / L</th>
-          <th>Ø Punkte / Pfeil</th>
+          <th>Ø Punkte / Aufnahme</th>
           <th>Checkout %</th>
         </tr>
       </thead>
@@ -916,72 +916,85 @@
     }
 
     // ---------------------------
-    // Head-to-Head Stats
-    // ---------------------------
-    function computeHeadToHead(selectedPlayer, filteredThrows, filteredMatches) {
-      if (!selectedPlayer || selectedPlayer === "ALL") return null;
+// Head-to-Head Stats
+// ---------------------------
+function computeHeadToHead(selectedPlayer, filteredThrows, filteredMatches) {
+  if (!selectedPlayer || selectedPlayer === "ALL") return null;
 
-      const throwsByMatch = new Map();
-      filteredThrows.forEach(t => {
-        if (!t.matchId) return;
-        if (t.playerName !== selectedPlayer) return;
-        if (!throwsByMatch.has(t.matchId)) {
-          throwsByMatch.set(t.matchId, []);
-        }
-        throwsByMatch.get(t.matchId).push(t);
-      });
-
-      const byOpponent = new Map(); // opponentName -> stats
-
-      filteredMatches.forEach(m => {
-        if (!m.players || !Array.isArray(m.players)) return;
-        if (!m.players.includes(selectedPlayer)) return;
-
-        const opponents = m.players.filter(p => p !== selectedPlayer);
-        if (opponents.length === 0) return;
-
-        const matchThrows = throwsByMatch.get(m.matchId) || [];
-        const matchScoreSum = matchThrows.reduce((sum, t) => sum + (t.score || 0), 0);
-        const matchDarts    = matchThrows.length;
-
-        // Checkout-Approx: wie oben
-        let chkAttempts = 0;
-        let chkHits     = 0;
-        matchThrows.forEach(t => {
-          const sBefore = t.scoreBefore;
-          if (typeof sBefore === "number" && sBefore > 0 && sBefore <= 170) {
-            chkAttempts++;
-            if (t.isCheckout) chkHits++;
-          }
-        });
-
-        opponents.forEach(opp => {
-          if (!byOpponent.has(opp)) {
-            byOpponent.set(opp, {
-              opponent: opp,
-              matches: 0,
-              wins: 0,
-              losses: 0,
-              totalScore: 0,
-              totalDarts: 0,
-              checkoutAttempts: 0,
-              checkoutHits: 0
-            });
-          }
-          const rec = byOpponent.get(opp);
-          rec.matches += 1;
-          if (m.winnerName === selectedPlayer) rec.wins += 1;
-          else rec.losses += 1;
-
-          rec.totalScore += matchScoreSum;
-          rec.totalDarts += matchDarts;
-          rec.checkoutAttempts += chkAttempts;
-          rec.checkoutHits     += chkHits;
-        });
-      });
-
-      return Array.from(byOpponent.values());
+  // Würfe des ausgewählten Spielers nach Match gruppieren
+  const throwsByMatch = new Map();
+  filteredThrows.forEach(t => {
+    if (!t.matchId) return;
+    if (t.playerName !== selectedPlayer) return;
+    if (!throwsByMatch.has(t.matchId)) {
+      throwsByMatch.set(t.matchId, []);
     }
+    throwsByMatch.get(t.matchId).push(t);
+  });
+
+  const byOpponent = new Map(); // opponentName -> stats
+
+  filteredMatches.forEach(m => {
+    if (!m.players || !Array.isArray(m.players)) return;
+    if (!m.players.includes(selectedPlayer)) return;
+
+    const opponents = m.players.filter(p => p !== selectedPlayer);
+    if (opponents.length === 0) return;
+
+    const matchThrows = throwsByMatch.get(m.matchId) || [];
+
+    // Gesamtpunkte in diesem Match (für den ausgewählten Spieler)
+    const matchScoreSum = matchThrows.reduce((sum, t) => sum + (t.score || 0), 0);
+
+    // Anzahl Aufnahmen (TurnNumber) in diesem Match
+    const turnsSet = new Set();
+    matchThrows.forEach(t => {
+      if (t.turnNumber != null && t.turnNumber > 0) {
+        turnsSet.add(t.turnNumber);
+      }
+    });
+    const turnsCount = turnsSet.size;
+
+    // Checkout-Approx wie oben: sBefore 1–170
+    let chkAttempts = 0;
+    let chkHits     = 0;
+    matchThrows.forEach(t => {
+      const sBefore = t.scoreBefore;
+      if (typeof sBefore === "number" && sBefore > 0 && sBefore <= 170) {
+        chkAttempts++;
+        if (t.isCheckout) chkHits++;
+      }
+    });
+
+    opponents.forEach(opp => {
+      if (!byOpponent.has(opp)) {
+        byOpponent.set(opp, {
+          opponent: opp,
+          matches: 0,
+          wins: 0,
+          losses: 0,
+          totalScore: 0,   // Summe aller Punkte gegen diesen Gegner
+          totalTurns: 0,   // Summe aller Aufnahmen gegen diesen Gegner
+          checkoutAttempts: 0,
+          checkoutHits: 0
+        });
+      }
+      const rec = byOpponent.get(opp);
+
+      rec.matches += 1;
+      if (m.winnerName === selectedPlayer) rec.wins += 1;
+      else rec.losses += 1;
+
+      rec.totalScore += matchScoreSum;
+      rec.totalTurns += turnsCount;
+      rec.checkoutAttempts += chkAttempts;
+      rec.checkoutHits     += chkHits;
+    });
+  });
+
+  return Array.from(byOpponent.values());
+}
+
 
     // ---------------------------
     // Render-Funktionen
@@ -1256,99 +1269,139 @@
     }
 
     // Chart
-    function renderChart(filteredThrows) {
-      const perDay = new Map();
-      filteredThrows.forEach(t => {
-        if (!t.timestamp) return;
-        const d = new Date(t.timestamp);
-        if (isNaN(d.getTime())) return;
-        const dayKey = d.toISOString().slice(0, 10);
-        if (!perDay.has(dayKey)) {
-          perDay.set(dayKey, { score: 0, darts: 0 });
-        }
-        const el = perDay.get(dayKey);
-        el.score += t.score || 0;
-        el.darts++;
+    // Chart: Ø Punkte / Aufnahme pro Spiel
+function renderChart(filteredThrows) {
+  // matchId -> { totalScore, turnKeys:Set, firstTime }
+  const perMatch = new Map();
+
+  filteredThrows.forEach(t => {
+    const matchId = t.matchId || "unknown";
+    const player  = t.playerName || "unknown";
+    const turn    = t.turnNumber ?? 0;
+
+    if (!perMatch.has(matchId)) {
+      perMatch.set(matchId, {
+        totalScore: 0,
+        turnKeys: new Set(),   // eindeutige Aufnahmen (player+turn)
+        firstTime: null
       });
-
-      const labels = Array.from(perDay.keys()).sort();
-      const data = labels.map(day => {
-        const { score, darts } = perDay.get(day);
-        return darts > 0 ? score / darts : 0;
-      });
-
-      const ctx = document.getElementById("scoreTimeChart").getContext("2d");
-      if (chartInstance) chartInstance.destroy();
-
-      chartInstance = new Chart(ctx, {
-        type: "line",
-        data: {
-          labels,
-          datasets: [
-            {
-              label: "Ø Punkte / Pfeil",
-              data,
-              fill: false,
-              tension: 0.2
-            }
-          ]
-        },
-        options: {
-          responsive: true,
-          scales: {
-            x: { title: { display: true, text: "Datum" } },
-            y: {
-              title: { display: true, text: "Ø Punkte / Pfeil" },
-              beginAtZero: true
-            }
-          }
-        }
-      });
-
-      const player = playerFilterEl.value;
-      const mode   = modeFilterEl.value;
-      let desc = "Ø Punkte pro Pfeil nach Datum – ";
-      desc += player === "ALL" ? "alle Spieler" : `Spieler: ${player}`;
-      if (mode !== "ALL") {
-        desc += `, Modus: ${mode}`;
-      }
-      chartDescEl.textContent = desc;
     }
+    const obj = perMatch.get(matchId);
+
+    // Gesamtpunkte dieses Spiels (über alle Darts im Filter)
+    obj.totalScore += t.score || 0;
+
+    // Aufnahme-Key (damit jede Aufnahme nur 1x zählt)
+    if (turn > 0) {
+      obj.turnKeys.add(`${player}|${turn}`);
+    }
+
+    // frühester Timestamp im Spiel
+    if (t.timestamp) {
+      const ts = new Date(t.timestamp).getTime();
+      if (!isNaN(ts)) {
+        if (obj.firstTime === null || ts < obj.firstTime) {
+          obj.firstTime = ts;
+        }
+      }
+    }
+  });
+
+  // In Array umwandeln und Spiele nach Zeit sortieren
+  const entries = Array.from(perMatch.entries())
+    .filter(([, obj]) => obj.turnKeys.size > 0)   // nur Spiele mit mindestens 1 Aufnahme
+    .sort((a, b) => {
+      const ta = a[1].firstTime ?? 0;
+      const tb = b[1].firstTime ?? 0;
+      return ta - tb;
+    });
+
+  // Labels: Spiel 1, Spiel 2, ...
+  const labels = entries.map(([, obj], idx) => `Spiel ${idx + 1}`);
+
+  // Y-Werte: Ø Punkte pro Aufnahme in diesem Spiel
+  const data = entries.map(([, obj]) => {
+    const turns = obj.turnKeys.size;
+    return turns > 0 ? obj.totalScore / turns : 0;
+  });
+
+  const ctx = document.getElementById("scoreTimeChart").getContext("2d");
+  if (chartInstance) chartInstance.destroy();
+
+  chartInstance = new Chart(ctx, {
+    type: "line",
+    data: {
+      labels,
+      datasets: [
+        {
+          label: "Ø Punkte / Aufnahme pro Spiel",
+          data,
+          fill: false,
+          tension: 0.2
+        }
+      ]
+    },
+    options: {
+      responsive: true,
+      scales: {
+        x: { title: { display: true, text: "Spiel" } },
+        y: {
+          title: { display: true, text: "Ø Punkte / Aufnahme" },
+          beginAtZero: true
+        }
+      }
+    }
+  });
+
+  // Beschreibungstext unter dem Chart
+  const player = playerFilterEl.value;
+  const mode   = modeFilterEl.value;
+  let desc = "Ø Punkte pro Aufnahme pro Spiel – ";
+  desc += player === "ALL" ? "alle Spieler" : `Spieler: ${player}`;
+  if (mode !== "ALL") {
+    desc += `, Modus: ${mode}`;
+  }
+  chartDescEl.textContent = desc;
+}
+
 
     // Head-to-Head rendern
-    function renderHeadToHead(selectedPlayer, filteredThrows, filteredMatches) {
-      h2hTableBody.innerHTML = "";
+function renderHeadToHead(selectedPlayer, filteredThrows, filteredMatches) {
+  h2hTableBody.innerHTML = "";
 
-      if (!selectedPlayer || selectedPlayer === "ALL") {
-        h2hDescEl.textContent = "Wähle oben einen Spieler, um direkte Duelle zu sehen.";
-        return;
-      }
+  if (!selectedPlayer || selectedPlayer === "ALL") {
+    h2hDescEl.textContent = "Wähle oben einen Spieler, um direkte Duelle zu sehen.";
+    return;
+  }
 
-      const h2h = computeHeadToHead(selectedPlayer, filteredThrows, filteredMatches);
-      if (!h2h || h2h.length === 0) {
-        h2hDescEl.textContent = "Keine Head-to-Head-Daten für diesen Spieler und Filter.";
-        return;
-      }
+  const h2h = computeHeadToHead(selectedPlayer, filteredThrows, filteredMatches);
+  if (!h2h || h2h.length === 0) {
+    h2hDescEl.textContent = "Keine Head-to-Head-Daten für diesen Spieler und Filter.";
+    return;
+  }
 
-      h2hDescEl.textContent = `Direkte Duelle für ${selectedPlayer} (nach aktuellem Filter).`;
+  h2hDescEl.textContent = `Direkte Duelle für ${selectedPlayer} (nach aktuellem Filter).`;
 
-      h2h.forEach(rec => {
-        const avg = rec.totalDarts > 0 ? (rec.totalScore / rec.totalDarts) : 0;
-        const chkRate = rec.checkoutAttempts > 0
-          ? (rec.checkoutHits / rec.checkoutAttempts) * 100
-          : 0;
+  h2h.forEach(rec => {
+    // Ø Punkte / Aufnahme (Turn)
+    const avgPerTurn = rec.totalTurns > 0 ? (rec.totalScore / rec.totalTurns) : 0;
 
-        const tr = document.createElement("tr");
-        tr.innerHTML = `
-          <td>${rec.opponent}</td>
-          <td>${rec.matches}</td>
-          <td>${rec.wins} / ${rec.losses}</td>
-          <td>${avg.toFixed(2)}</td>
-          <td>${rec.checkoutAttempts > 0 ? chkRate.toFixed(1) + " %" : "–"}</td>
-        `;
-        h2hTableBody.appendChild(tr);
-      });
-    }
+    const chkRate = rec.checkoutAttempts > 0
+      ? (rec.checkoutHits / rec.checkoutAttempts) * 100
+      : 0;
+
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td>${rec.opponent}</td>
+      <td>${rec.matches}</td>
+      <td>${rec.wins} / ${rec.losses}</td>
+      <td>${rec.totalTurns > 0 ? avgPerTurn.toFixed(2) : "–"}</td>
+      <td>${rec.checkoutAttempts > 0 ? chkRate.toFixed(1) + " %" : "–"}</td>
+    `;
+    h2hTableBody.appendChild(tr);
+  });
+}
+
 
     // ---------------------------
     // Alles neu zeichnen
