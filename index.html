@@ -1,0 +1,619 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8" />
+  <title>Darts Scoring App</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    :root {
+      --bg: #050915;
+      --card-bg: #111827;
+      --accent: #22c55e;
+      --accent-soft: #16a34a;
+      --accent-red: #ef4444;
+      --border: #1f2937;
+      --text: #f9fafb;
+      --text-muted: #9ca3af;
+      --button-bg: #0f172a;
+      --button-hover: #1e293b;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+      margin: 0;
+      padding: 1rem;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+      max-width: 90%;
+      margin-inline: auto;
+      background: radial-gradient(circle at top, #1f2937, #020617 60%);
+      color: var(--text);
+    }
+
+    h1 {
+      text-align: center;
+      margin-bottom: 0.5rem;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      font-size: 1.2rem;
+      color: var(--text-muted);
+    }
+
+    h1 span {
+      display: block;
+      font-size: 1.8rem;
+      letter-spacing: 0.12em;
+      color: var(--accent);
+    }
+
+    .subtitle {
+      text-align: center;
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      margin-bottom: 0.5rem;
+    }
+
+    .card {
+      border-radius: 16px;
+      padding: 1rem 1.1rem 1.1rem;
+      box-shadow: 0 20px 40px rgba(0,0,0,0.35);
+      background: linear-gradient(145deg, #020617, #020617 25%, #0b1120 80%);
+      border: 1px solid rgba(148,163,184,0.18);
+    }
+
+    .card h2 {
+      margin-top: 0;
+      margin-bottom: 0.75rem;
+      font-size: 1.1rem;
+      display: flex;
+      align-items: center;
+      gap: 0.35rem;
+      color: var(--text);
+    }
+
+    .card h2::before {
+      content: "";
+      width: 4px;
+      height: 18px;
+      border-radius: 999px;
+      background: linear-gradient(to bottom, var(--accent), var(--accent-red));
+      display: inline-block;
+    }
+
+    label {
+      display: block;
+      margin-bottom: 0.25rem;
+      font-size: 0.85rem;
+      color: var(--text-muted);
+    }
+
+    select, input {
+      width: 100%;
+      padding: 0.55rem 0.75rem;
+      font-size: 1rem;
+      margin-bottom: 0.5rem;
+      border-radius: 12px;
+      border: 1px solid var(--border);
+      background: rgba(15,23,42,0.9);
+      color: var(--text);
+      outline: none;
+    }
+
+    select:focus, input:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 1px rgba(34,197,94,0.35);
+    }
+
+    button {
+      padding: 0.55rem 1rem;
+      font-size: 1rem;
+      border-radius: 999px;
+      border: none;
+      cursor: pointer;
+      background: var(--button-bg);
+      color: var(--text);
+      transition: transform 0.08s ease, box-shadow 0.08s ease, background 0.08s ease;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.35rem;
+      white-space: nowrap;
+    }
+
+    button.primary {
+      background: radial-gradient(circle at top, var(--accent-soft), var(--accent));
+      color: #022c22;
+      font-weight: 600;
+      box-shadow: 0 10px 25px rgba(34,197,94,0.3);
+    }
+
+    button.primary:hover {
+      background: radial-gradient(circle at top, var(--accent), var(--accent-soft));
+      transform: translateY(-1px);
+      box-shadow: 0 14px 32px rgba(34,197,94,0.4);
+    }
+
+    button.danger {
+      background: radial-gradient(circle at top, #f97373, var(--accent-red));
+      color: #450a0a;
+      font-weight: 500;
+      box-shadow: 0 10px 20px rgba(239,68,68,0.35);
+    }
+
+    button.secondary {
+      background: rgba(15,23,42,0.9);
+      border: 1px solid rgba(148,163,184,0.35);
+      color: var(--text-muted);
+    }
+
+    button.danger:hover, button.secondary:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 14px 32px rgba(15,23,42,0.6);
+    }
+
+    button:active {
+      transform: translateY(0);
+      box-shadow: 0 3px 6px rgba(15,23,42,0.5);
+    }
+
+    .row {
+      display: flex;
+      gap: 0.75rem;
+      margin-bottom: 0.25rem;
+    }
+
+    .row > * {
+      flex: 1;
+    }
+
+    .players-board {
+      display: flex;
+      gap: 0.75rem;
+      justify-content: space-between;
+      margin-top: 0.75rem;
+    }
+
+    .player-box {
+      flex: 1;
+      padding: 0.75rem 0.85rem;
+      border-radius: 16px;
+      border: 1px solid rgba(148,163,184,0.3);
+      text-align: center;
+      background: radial-gradient(circle at top, #0b1120, #020617 75%);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .player-box::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(circle at top, rgba(34,197,94,0.16), transparent 60%);
+      opacity: 0;
+      transition: opacity 0.15s ease;
+      pointer-events: none;
+    }
+
+    .player-box.active::before { opacity: 1; }
+
+    .player-box.active {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 1px rgba(34,197,94,0.35), 0 12px 28px rgba(34,197,94,0.3);
+    }
+
+    .player-name {
+      font-weight: 600;
+      margin-bottom: 0.15rem;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      font-size: 0.8rem;
+      color: var(--text-muted);
+    }
+
+    .player-score {
+      font-size: 2rem;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      color: #e5e7eb;
+    }
+
+    .small {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      margin-top: 0.25rem;
+      margin-bottom: 0.25rem;
+    }
+
+    #match-info {
+      padding: 0.4rem 0.8rem;
+      border-radius: 999px;
+      background: rgba(15,23,42,0.9);
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      margin-bottom: 0.4rem;
+    }
+
+    #match-info::before {
+      content: "🎯";
+      font-size: 0.95rem;
+    }
+
+    #status {
+      min-height: 1.2em;
+    }
+
+    /* Dart-Input-Bereich */
+    .dart-input {
+      margin-top: 0.9rem;
+      padding-top: 0.7rem;
+      border-top: 1px solid rgba(148,163,184,0.35);
+      display: flex;
+      flex-direction: column;
+      gap: 0.6rem;
+    }
+
+    .dart-state {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+    }
+
+    .dart-state-label {
+      font-size: 0.8rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--text-muted);
+    }
+
+    .dart-state-sub {
+      font-size: 0.95rem;
+      margin-top: 0.1rem;
+    }
+
+    .dart-current-points {
+      font-size: 1.5rem;
+      font-weight: 700;
+    }
+
+    .dart-mult {
+      display: flex;
+      gap: 0.5rem;
+    }
+
+    .dart-mult .mult-btn {
+      flex: 1;
+      padding-block: 0.5rem;
+      border-radius: 999px;
+      font-size: 0.9rem;
+    }
+
+    .dart-segments {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(48px, 1fr));
+      gap: 0.4rem;
+      margin-top: 0.4rem;
+    }
+
+    .dart-segments button {
+      width: 100%;
+      aspect-ratio: 1 / 1;
+      border-radius: 12px;
+      font-size: clamp(0.8rem, 2.4vw, 1.1rem);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: rgba(15,23,42,0.85);
+      color: #e5e7eb;
+      border: 1px solid rgba(15,23,42,0.9);
+      box-shadow: 0 5px 12px rgba(15,23,42,0.8);
+    }
+
+    button[data-segment="20"] {
+    background: rgba(15,23,42,0.85);
+    }
+
+    /* wirklich golden nur im T20-Status */
+    button.segment-gold[data-segment="20"] {
+    background: radial-gradient(circle at top, #facc15, #eab308) !important;
+    color: #111;
+    font-weight: 700;
+    border: 1px solid rgba(250, 204, 21, 0.8);
+    }
+
+    .segment-selected {
+      outline: 2px solid rgba(34,197,94,0.9);
+      outline-offset: 1px;
+    }
+
+    .mult-selected {
+      outline: 2px solid rgba(59,130,246,0.9);
+      outline-offset: 1px;
+    }
+
+    .full-width {
+      width: 100%;
+      margin-top: 0.4rem;
+    }
+
+    .manual-input {
+      margin-top: 0.5rem;
+    }
+
+    .turn-summary {
+      margin-top: 0.6rem;
+      padding: 0.6rem 0.7rem;
+      border-radius: 12px;
+      background: rgba(15,23,42,0.9);
+      border: 1px solid rgba(148,163,184,0.45);
+    }
+
+    #turn-summary-text {
+      margin-bottom: 0.5rem;
+    }
+
+    /* Winner Modal */
+    .winner-modal {
+      position: fixed;
+      inset: 0;
+      background: rgba(15,23,42,0.85);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 50;
+    }
+
+    .winner-modal-content {
+      background: linear-gradient(145deg, #020617, #0b1120);
+      border-radius: 18px;
+      padding: 1.2rem 1.4rem 1rem;
+      border: 1px solid rgba(34,197,94,0.6);
+      box-shadow: 0 20px 50px rgba(0,0,0,0.6);
+      max-width: 320px;
+      width: 90%;
+      text-align: center;
+    }
+
+    .winner-modal-content h3 {
+      margin: 0 0 0.4rem;
+      font-size: 1.2rem;
+    }
+
+    .winner-modal-content p {
+      margin: 0 0 0.8rem;
+      font-size: 1rem;
+    }
+
+    @media (max-width: 520px) {
+      .players-board { flex-direction: column; }
+      body { padding-inline: 0.7rem; }
+    }
+
+    /* Pulse Animation für Buttons */
+    .pulse {
+      animation: pulse 0.25s;
+    }
+    @keyframes pulse {
+      0% { box-shadow: 0 0 0 0 rgba(34,197,94,0.5); }
+      70% { box-shadow: 0 0 0 10px rgba(34,197,94,0.0); }
+      100% { box-shadow: 0 0 0 0 rgba(34,197,94,0.0); }
+    }
+  </style>
+</head>
+
+<body>
+  <h1>
+    Scoreboard
+    <span>Golby Pally Darts Open</span>
+  </h1>
+  <p class="subtitle">Heavy Flip for the win.</p>
+
+  <!-- Match Setup -->
+  <section class="card" id="setup-card">
+    <h2>Match Setup</h2>
+
+    <label for="match-type">Spieltyp</label>
+    <select id="match-type">
+      <option value="single">Einzel (1 vs 1)</option>
+      <option value="double">Doppel (2 vs 2)</option>
+    </select>
+
+    <div class="row">
+      <div>
+        <label for="player1">Spieler 1 (Team 1)</label>
+        <input id="player1" list="players-list" placeholder="Spieler wählen oder Namen tippen" />
+      </div>
+      <div>
+        <label for="player2">Spieler 1 (Team 2)</label>
+        <input id="player2" list="players-list" placeholder="Spieler wählen oder Namen tippen" />
+      </div>
+    </div>
+
+    <div class="row" id="double-row" style="display:none;">
+      <div>
+        <label for="player3">Spieler 2 (Team 1)</label>
+        <input id="player3" list="players-list" placeholder="Spieler wählen oder Namen tippen" />
+      </div>
+      <div>
+        <label for="player4">Spieler 2 (Team 2)</label>
+        <input id="player4" list="players-list" placeholder="Spieler wählen oder Namen tippen" />
+      </div>
+    </div>
+
+    <!-- Vorauswahl-Spieler -->
+    <datalist id="players-list">
+      <option value="Dart Vader" />
+      <option value="The Gügi" />
+      <option value="Remolito" />
+      <option value="Bullseye Geier" />
+      <option value="Der Torero" />
+      <option value="Bassdart" />
+      <option value="Heavy Flip" />
+      <option value="Sherpa Tenzing" />
+      <option value="El Brunero" />
+      <option value="The Dart Knight" />
+      <option value="Tabaluga" />
+      <option value="The Triple One" />
+      <option value="WizDart od OZ" />
+      <option value="Bullien" />
+      <option value="Arrow Artist" />
+      <option value="Mr. Qualitätovic" />
+      <option value="Laser Lenny" />
+      <option value="Svenson" />
+      <option value="Bullshigh" />
+      <option value="D'artagnan" />
+      <option value="Gast 1" />
+      <option value="Gast 2" />
+    </datalist>
+
+    <label for="mode">Modus</label>
+    <select id="mode">
+      <option value="501-double">501 Double Out</option>
+      <option value="501-single">501 Single Out</option>
+      <option value="301-double">301 Double Out</option>
+      <option value="301-single">301 Single Out</option>
+    </select>
+
+    <button class="primary" id="start-match-btn">
+      ▶ Match starten
+    </button>
+  </section>
+
+
+  <!-- Scoring -->
+  <section class="card" id="scoring-card" style="display:none;">
+    <h2>Scoring</h2>
+
+    <div id="match-info" class="small"></div>
+    <div id="current-thrower" class="small"></div>
+    <div id="turn-darts" class="small"></div>
+
+    <div class="players-board">
+      <div class="player-box" id="p1-box">
+        <div class="player-name" id="p1-name"></div>
+        <div class="player-score" id="p1-score"></div>
+      </div>
+
+      <div class="player-box" id="p2-box">
+        <div class="player-name" id="p2-name"></div>
+        <div class="player-score" id="p2-score"></div>
+      </div>
+    </div>
+
+    <div class="dart-input">
+      <div class="dart-state">
+        <div>
+          <div class="dart-state-label">Aktueller Pfeil</div>
+          <div class="dart-state-sub" id="dart-state-text">–</div>
+        </div>
+        <div class="dart-current-points">
+          <span id="dart-current-points">--</span> Punkte
+        </div>
+      </div>
+
+      <div class="dart-mult">
+        <button type="button" class="mult-btn" data-mult="2">Doppel</button>
+        <button type="button" class="mult-btn" data-mult="3">Triple</button>
+      </div>
+
+      <div class="dart-segments" id="score-buttons">
+        <!-- Segmente 0–20 & 25 werden per JS erzeugt -->
+      </div>
+
+      <!-- Turn-History Anzeige -->
+      <div id="turn-history" class="small" aria-live="polite" style="margin-top:0.5rem;"></div>
+
+      <div id="turn-summary" class="turn-summary" style="display:none;">
+        <div id="turn-summary-text"></div>
+        <button type="button" class="primary full-width" id="confirm-turn-btn">
+          Aufnahme bestätigen – Nächster Spieler
+        </button>
+        <p class="small">
+          Falls etwas falsch ist: <strong>Undo</strong> drücken.
+        </p>
+      </div>
+    </div>
+
+    <div class="row" style="margin-top:0.85rem;">
+      <button class="danger" id="undo-btn">
+        ↩ Undo
+      </button>
+      <button class="secondary" id="abort-btn">
+        ✕ Match abbrechen
+      </button>
+
+      <!-- Modal für Match-Abbruch-Bestätigung -->
+      <div id="abort-modal" style="display:none;position:fixed;inset:0;z-index:100;background:rgba(15,23,42,0.85);align-items:center;justify-content:center;">
+        <div style="background:#111827;border-radius:16px;padding:1.2rem 1.4rem 1rem;border:1px solid #ef4444;box-shadow:0 20px 50px rgba(0,0,0,0.6);max-width:320px;width:90%;text-align:center;">
+          <h3 style="color:#ef4444;margin:0 0 0.4rem;">Match wirklich abbrechen?</h3>
+          <p style="margin:0 0 0.8rem;">Alle aktuellen Würfe gehen verloren.</p>
+          <button id="abort-confirm-btn" class="danger" style="margin-right:0.5em;">Ja, abbrechen</button>
+          <button id="abort-cancel-btn" class="secondary">Nein, weiterspielen</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="status" class="small" style="margin-top:0.6rem;"></div>
+  </section>
+
+
+  <!-- Winner Popup -->
+  <div id="winner-modal" class="winner-modal" style="display:none;">
+    <div class="winner-modal-content">
+      <h3>Leg beendet 🎯</h3>
+      <p id="winner-text"></p>
+      <button id="winner-close-btn" class="primary">
+        🔁 Neues Match starten
+      </button>
+    </div>
+  </div>
+
+  <script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-app.js";
+  import {
+    getFirestore,
+    collection,
+    addDoc,
+    serverTimestamp
+  } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js";
+
+    // ==== Firebase Config (aus der Konsole kopieren) ====
+    const firebaseConfig = {
+      apiKey: "AIzaSyBL6cOSiJv-KC73Sb4C6eXhk3LxJ25SjnE",
+      authDomain: "dart-app-6dc9a.firebaseapp.com",
+      projectId: "dart-app-6dc9a",
+      storageBucket: "dart-app-6dc9a.firebasestorage.app",
+      messagingSenderId: "498506692408",
+      appId: "1:498506692408:web:497d5105d631a5e10573cd"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+
+    // Damit app.js auf Firestore zugreifen kann:
+    window.db = db;
+    window.addDoc = addDoc;
+    window.collection = collection;
+    window.serverTimestamp = serverTimestamp;
+
+  // Mini-Test: einmalig ein Test-Dokument schreiben
+    try {
+      const ref = await addDoc(collection(db, "test"), {
+        from: "darts-app",
+        text: "Hallo aus der darts-app",
+        createdAt: serverTimestamp()
+      });
+      console.log("Test-Dokument geschrieben, ID:", ref.id);
+    } catch (err) {
+      console.error("Fehler beim Test-Schreiben nach Firestore:", err);
+    }
+  </script>
+
+  <!-- Dein bisheriger Code -->
+  <script src="app.js"></script>
+</body>
+</html>
