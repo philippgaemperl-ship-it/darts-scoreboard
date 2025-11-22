@@ -367,6 +367,21 @@
       z-index: 50;
     }
 
+    .nav-links a {
+      color: var(--text-muted);
+      text-decoration: none;
+      font-size: 0.9rem;
+      padding: 0.35rem 0.7rem;
+      border-radius: 999px;
+      border: 1px solid rgba(148,163,184,0.4);
+      background: rgba(15,23,42,0.9);
+    }
+
+    .nav-links a:hover {
+      border-color: var(--accent);
+      color: var(--accent);
+    }
+
     .winner-modal-content {
       background: linear-gradient(145deg, #020617, #0b1120);
       border-radius: 18px;
@@ -406,11 +421,18 @@
 </head>
 
 <body>
+    
   <h1>
     Scoreboard
     <span>Golby Pally Darts Open</span>
   </h1>
   <p class="subtitle">Heavy Flip for the win.</p>
+
+  <header>
+       <nav class="nav-links">
+      <a href="stats.html">📊 Stats</a>
+    </nav>
+  </header>
 
   <!-- Match Setup -->
   <section class="card" id="setup-card">
