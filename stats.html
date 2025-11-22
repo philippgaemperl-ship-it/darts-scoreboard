@@ -1,0 +1,1377 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8" />
+  <title>Darts Stats – Golby Pally</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <!-- Chart.js für Score-Verlauf -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <style>
+    :root {
+      --bg: #050915;
+      --card-bg: #111827;
+      --accent: #22c55e;
+      --accent-soft: #16a34a;
+      --accent-red: #ef4444;
+      --border: #1f2937;
+      --text: #f9fafb;
+      --text-muted: #9ca3af;
+      --button-bg: #0f172a;
+      --button-hover: #1e293b;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+      margin: 0;
+      padding: 1rem;
+      min-height: 100vh;
+      max-width: 1100px;
+      margin-inline: auto;
+      background: radial-gradient(circle at top, #1f2937, #020617 60%);
+      color: var(--text);
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+    }
+
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 0.75rem;
+      flex-wrap: wrap;
+    }
+
+    h1 {
+      margin: 0;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      font-size: 1.2rem;
+      color: var(--text-muted);
+    }
+
+    h1 span {
+      display: block;
+      font-size: 1.6rem;
+      letter-spacing: 0.12em;
+      color: var(--accent);
+    }
+
+    .nav-links a {
+      color: var(--text-muted);
+      text-decoration: none;
+      font-size: 0.9rem;
+      padding: 0.35rem 0.7rem;
+      border-radius: 999px;
+      border: 1px solid rgba(148,163,184,0.4);
+      background: rgba(15,23,42,0.9);
+    }
+
+    .nav-links a:hover {
+      border-color: var(--accent);
+      color: var(--accent);
+    }
+
+    .card {
+      border-radius: 16px;
+      padding: 1rem 1.1rem 1.1rem;
+      box-shadow: 0 20px 40px rgba(0,0,0,0.35);
+      background: linear-gradient(145deg, #020617, #020617 25%, #0b1120 80%);
+      border: 1px solid rgba(148,163,184,0.18);
+    }
+
+    .card h2 {
+      margin-top: 0;
+      margin-bottom: 0.75rem;
+      font-size: 1.1rem;
+      display: flex;
+      align-items: center;
+      gap: 0.35rem;
+      color: var(--text);
+    }
+
+    .card h2::before {
+      content: "";
+      width: 4px;
+      height: 18px;
+      border-radius: 999px;
+      background: linear-gradient(to bottom, var(--accent), var(--accent-red));
+      display: inline-block;
+    }
+
+    .section-title {
+      font-size: 0.9rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--text-muted);
+      margin: 0.5rem 0 0.25rem;
+    }
+
+    .filters-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.75rem;
+      align-items: flex-end;
+      margin-bottom: 0.75rem;
+    }
+
+    label {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      margin-bottom: 0.2rem;
+      display: block;
+    }
+
+    select {
+      padding: 0.45rem 0.7rem;
+      border-radius: 12px;
+      border: 1px solid var(--border);
+      background: rgba(15,23,42,0.9);
+      color: var(--text);
+      min-width: 160px;
+      font-size: 0.95rem;
+    }
+
+    select:focus {
+      outline: none;
+      border-color: var(--accent);
+      box-shadow: 0 0 0 1px rgba(34,197,94,0.35);
+    }
+
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+      gap: 0.75rem;
+      margin-bottom: 0.8rem;
+    }
+
+    .stat-box {
+      border-radius: 14px;
+      padding: 0.7rem 0.8rem;
+      background: rgba(15,23,42,0.9);
+      border: 1px solid rgba(148,163,184,0.35);
+    }
+
+    .stat-label {
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--text-muted);
+      margin-bottom: 0.25rem;
+    }
+
+    .stat-value {
+      font-size: 1.3rem;
+      font-weight: 700;
+    }
+
+    .stat-sub {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      margin-top: 0.1rem;
+    }
+
+    .chart-container {
+      width: 100%;
+      max-height: 360px;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.85rem;
+      margin-top: 0.5rem;
+    }
+
+    th, td {
+      padding: 0.35rem 0.4rem;
+      text-align: left;
+      border-bottom: 1px solid rgba(31,41,55,0.8);
+    }
+
+    th {
+      font-weight: 600;
+      color: var(--text-muted);
+    }
+
+    tbody tr:nth-child(even) {
+      background: rgba(15,23,42,0.5);
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0.15rem 0.45rem;
+      border-radius: 999px;
+      font-size: 0.7rem;
+      border: 1px solid rgba(148,163,184,0.55);
+      color: var(--text-muted);
+    }
+
+    .badge.checkout {
+      border-color: var(--accent);
+      color: var(--accent);
+    }
+
+    .small {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+    }
+
+    @media (max-width: 600px) {
+      body { padding-inline: 0.7rem; }
+      header { align-items: flex-start; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div>
+      <h1>
+        Stats
+        <span>Golby Pally Darts Open</span>
+      </h1>
+      <p class="small">Aggregierte Werte aller gespeicherten Matches aus Firestore.</p>
+    </div>
+    <nav class="nav-links">
+      <a href="index.html">⬅ Scoreboard</a>
+    </nav>
+  </header>
+
+  <!-- Filter & Overview -->
+  <section class="card">
+    <h2>Übersicht & Filter</h2>
+
+    <div class="filters-row">
+      <div>
+        <label for="player-filter">Spieler</label>
+        <select id="player-filter">
+          <option value="ALL">Alle Spieler</option>
+          <!-- Spieler per JS aus Firestore befüllt -->
+        </select>
+      </div>
+      <div>
+        <label for="mode-filter">Modus (optional)</label>
+        <select id="mode-filter">
+          <option value="ALL">Alle Modi</option>
+          <option value="301-single">301 Single Out</option>
+          <option value="301-double">301 Double Out</option>
+          <option value="501-single">501 Single Out</option>
+          <option value="501-double">501 Double Out</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- GENERAL -->
+    <h3 class="section-title">General</h3>
+    <div class="stats-grid" id="stats-general"></div>
+
+    <!-- FIRST DART -->
+    <h3 class="section-title">🎯 First Dart</h3>
+    <div class="stats-grid" id="stats-firstdart"></div>
+
+    <!-- FINISHING -->
+    <h3 class="section-title">🎯 Finishing</h3>
+    <div class="stats-grid" id="stats-finishing"></div>
+
+    <!-- SEGMENT-ANALYSE -->
+    <h3 class="section-title">🎯 Segment-Analyse</h3>
+    <div class="stats-grid" id="stats-segment"></div>
+
+    <!-- STREAKS -->
+    <h3 class="section-title">🎯 Streaks</h3>
+    <div class="stats-grid" id="stats-streaks"></div>
+  </section>
+
+  <!-- Chart: Score-Verlauf -->
+  <section class="card">
+    <h2>Score-Verlauf über die Zeit</h2>
+    <p class="small" id="chart-desc">
+      Ø Punkte pro Pfeil nach Datum – für alle Spieler.
+    </p>
+    <div class="chart-container">
+      <canvas id="scoreTimeChart"></canvas>
+    </div>
+  </section>
+
+  <!-- Head-to-Head -->
+  <section class="card">
+    <h2>Head-to-Head</h2>
+    <p class="small" id="h2h-desc">
+      Wähle oben einen Spieler, um direkte Duelle zu sehen.
+    </p>
+    <table>
+      <thead>
+        <tr>
+          <th>Gegner</th>
+          <th>Spiele</th>
+          <th>W / L</th>
+          <th>Ø Punkte / Pfeil</th>
+          <th>Checkout %</th>
+        </tr>
+      </thead>
+      <tbody id="h2h-table-body">
+        <!-- H2H Zeilen per JS -->
+      </tbody>
+    </table>
+  </section>
+
+  <!-- Letzte Würfe -->
+  <section class="card">
+    <h2>Letzte Würfe (nach Filter)</h2>
+    <p class="small">Die 30 zuletzt gespeicherten Würfe entsprechend der aktuellen Filter.</p>
+    <table>
+      <thead>
+        <tr>
+          <th>Zeit</th>
+          <th>Spieler</th>
+          <th>Team</th>
+          <th>Pfeil</th>
+          <th>Feld</th>
+          <th>Score</th>
+          <th>Rest</th>
+          <th>Checkout</th>
+        </tr>
+      </thead>
+      <tbody id="throws-table-body">
+        <!-- Zeilen per JS -->
+      </tbody>
+    </table>
+  </section>
+
+  <!-- Firebase + Stats-Logik -->
+  <script type="module">
+    // Firebase Modular SDK importieren
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/11.3.0/firebase-app.js";
+    import {
+      getFirestore,
+      collection,
+      getDocs
+    } from "https://www.gstatic.com/firebasejs/11.3.0/firebase-firestore.js";
+
+    // !!! Deine Config (identisch wie index.html)
+    const firebaseConfig = {
+      apiKey: "AIzaSyBL6cOSiJv-KC73Sb4C6eXhk3LxJ25SjnE",
+      authDomain: "dart-app-6dc9a.firebaseapp.com",
+      projectId: "dart-app-6dc9a",
+      storageBucket: "dart-app-6dc9a.firebasestorage.app",
+      messagingSenderId: "498506692408",
+      appId: "1:498506692408:web:497d5105d631a5e10573cd"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+
+    const playerFilterEl   = document.getElementById("player-filter");
+    const modeFilterEl     = document.getElementById("mode-filter");
+
+    const statsGeneralEl   = document.getElementById("stats-general");
+    const statsFirstDartEl = document.getElementById("stats-firstdart");
+    const statsFinishingEl = document.getElementById("stats-finishing");
+    const statsSegmentEl   = document.getElementById("stats-segment");
+    const statsStreaksEl   = document.getElementById("stats-streaks");
+
+    const throwsTableBody  = document.getElementById("throws-table-body");
+    const chartDescEl      = document.getElementById("chart-desc");
+    const h2hTableBody     = document.getElementById("h2h-table-body");
+    const h2hDescEl        = document.getElementById("h2h-desc");
+
+    let allThrows  = [];
+    let allMatches = [];
+    let chartInstance = null;
+
+    // ---------------------------
+    // Daten laden
+    // ---------------------------
+    async function loadData() {
+      const matchesSnap = await getDocs(collection(db, "matches"));
+      allMatches = [];
+      matchesSnap.forEach(doc => {
+        allMatches.push({ id: doc.id, ...doc.data() });
+      });
+
+      const throwsSnap = await getDocs(collection(db, "throws"));
+      allThrows = [];
+      throwsSnap.forEach(doc => {
+        allThrows.push({ id: doc.id, ...doc.data() });
+      });
+
+      console.log("Loaded:", { matches: allMatches.length, throws: allThrows.length });
+
+      populatePlayerFilter();
+      renderAll();
+    }
+
+    // ---------------------------
+    // Filter / Helpers
+    // ---------------------------
+    function populatePlayerFilter() {
+      const players = new Set();
+      allThrows.forEach(t => {
+        if (t.playerName) players.add(t.playerName);
+      });
+
+      [...playerFilterEl.options].forEach(opt => {
+        if (opt.value !== "ALL") opt.remove();
+      });
+
+      Array.from(players).sort().forEach(name => {
+        const opt = document.createElement("option");
+        opt.value = name;
+        opt.textContent = name;
+        playerFilterEl.appendChild(opt);
+      });
+    }
+
+    function getModeStringFromMatch(m) {
+      if (!m.startPoints || !m.outType) return null;
+      return `${m.startPoints}-${m.outType}`;
+    }
+
+    function getFilteredThrows() {
+      const player = playerFilterEl.value;
+      const mode   = modeFilterEl.value;
+
+      const matchByMatchId = new Map();
+      allMatches.forEach(m => {
+        matchByMatchId.set(m.matchId, m);
+      });
+
+      return allThrows.filter(t => {
+        let ok = true;
+
+        if (player !== "ALL") {
+          ok = ok && t.playerName === player;
+        }
+
+        if (mode !== "ALL") {
+          const match = matchByMatchId.get(t.matchId);
+          if (!match) return false;
+          const modeStr = getModeStringFromMatch(match);
+          ok = ok && modeStr === mode;
+        }
+
+        return ok;
+      });
+    }
+
+    function getFilteredMatches() {
+      const player = playerFilterEl.value;
+      const mode   = modeFilterEl.value;
+
+      return allMatches.filter(m => {
+        if (!m.players || !Array.isArray(m.players)) return false;
+
+        let ok = true;
+        if (player !== "ALL") {
+          ok = ok && m.players.includes(player);
+        }
+        if (mode !== "ALL") {
+          const modeStr = getModeStringFromMatch(m);
+          ok = ok && modeStr === mode;
+        }
+        return ok;
+      });
+    }
+
+    // ---------------------------
+    // Advanced Stats berechnen
+    // ---------------------------
+    function computeAdvancedStats(filteredThrows) {
+      if (!filteredThrows || filteredThrows.length === 0) {
+        return null;
+      }
+
+      const darts = filteredThrows.length;
+      const scores = filteredThrows.map(t => t.score || 0);
+      const totalScore = scores.reduce((a, b) => a + b, 0);
+      const avgPerDart = darts > 0 ? totalScore / darts : 0;
+
+      // Standardabweichung
+      let variance = 0;
+      if (darts > 1) {
+        const mean = avgPerDart;
+        variance = scores.reduce((sum, s) => sum + Math.pow(s - mean, 2), 0) / darts;
+      }
+      const stdDev = Math.sqrt(variance);
+      const consistencyIndex = stdDev > 0 ? (avgPerDart / stdDev) : null;
+
+      const nonZeroScores = scores.filter(s => s > 0);
+      const highestScore = Math.max(...scores);
+      const lowestScoreNoZero = nonZeroScores.length > 0 ? Math.min(...nonZeroScores) : null;
+
+      // Turn- / Aufnahme-Infos
+      const turnsMap = new Map(); // key: matchId|playerName|turnNumber
+      const legsMap = new Map();  // key: matchId|playerName
+
+      filteredThrows.forEach(t => {
+        const matchId = t.matchId || "unknown";
+        const player  = t.playerName || "unknown";
+        const turn    = t.turnNumber || 0;
+
+        const legKey  = `${matchId}|${player}`;
+        const turnKey = `${legKey}|${turn}`;
+
+        if (!turnsMap.has(turnKey)) {
+          turnsMap.set(turnKey, {
+            matchId,
+            player,
+            turnNumber: turn,
+            totalScore: 0,
+            lastRemaining: t.remaining
+          });
+        }
+        const turnObj = turnsMap.get(turnKey);
+        turnObj.totalScore += (t.score || 0);
+        turnObj.lastRemaining = t.remaining;
+
+        if (!legsMap.has(legKey)) {
+          legsMap.set(legKey, {
+            matchId,
+            player,
+            turns: new Set(),
+            hasCheckout: false,
+            firstTurnRest: null
+          });
+        }
+        const legObj = legsMap.get(legKey);
+        legObj.turns.add(turn);
+        if (t.isCheckout) {
+          legObj.hasCheckout = true;
+        }
+      });
+
+      // Ø Punkte pro Aufnahme + Aufnahmen > X
+      const turnsArray = Array.from(turnsMap.values());
+      const totalTurnScore = turnsArray.reduce((sum, t) => sum + t.totalScore, 0);
+      const turnCount = turnsArray.length;
+      const avgPerTurn = turnCount > 0 ? totalTurnScore / turnCount : 0;
+
+      let countTurns60 = 0;
+      let countTurns100 = 0;
+      let countTurns140 = 0;
+      let countTurns180 = 0;
+
+      turnsArray.forEach(t => {
+        const s = t.totalScore;
+        if (s >= 60)  countTurns60++;
+        if (s >= 100) countTurns100++;
+        if (s >= 140) countTurns140++;
+        if (s >= 180) countTurns180++;
+      });
+
+      // Ø Aufnahmen pro Leg & Ø Rest nach 1. Aufnahme
+      let legsWithCheckout = [];
+      legsMap.forEach(leg => {
+        if (leg.hasCheckout) {
+          // Rest nach erster Aufnahme holen
+          const turnKey1 = `${leg.matchId}|${leg.player}|1`;
+          const t1 = turnsMap.get(turnKey1);
+          if (t1) leg.firstTurnRest = t1.lastRemaining;
+          legsWithCheckout.push(leg);
+        }
+      });
+
+      const legsCount = legsWithCheckout.length;
+      let totalTurnsPerLeg = 0;
+      let totalFirstTurnRest = 0;
+      let countFirstTurnRest = 0;
+
+      legsWithCheckout.forEach(leg => {
+        totalTurnsPerLeg += leg.turns.size;
+        if (typeof leg.firstTurnRest === "number") {
+          totalFirstTurnRest += leg.firstTurnRest;
+          countFirstTurnRest++;
+        }
+      });
+
+      const avgTurnsPerLeg = legsCount > 0 ? totalTurnsPerLeg / legsCount : null;
+      const avgRestAfterFirstTurn = countFirstTurnRest > 0
+        ? totalFirstTurnRest / countFirstTurnRest
+        : null;
+
+      // First Dart
+      const firstDarts = filteredThrows.filter(t => t.dartInTurn === 1);
+      const firstDartCount = firstDarts.length;
+      const firstScoreSum = firstDarts.reduce((sum, t) => sum + (t.score || 0), 0);
+      const avgFirstDart = firstDartCount > 0 ? firstScoreSum / firstDartCount : 0;
+
+        const firstT20Hits = firstDarts.filter(t => t.segment === 20 && t.multiplier === 3).length;
+        const t20FirstRate = firstDartCount > 0 ? (firstT20Hits / firstDartCount) * 100 : 0;
+
+      // Segment-Treffer (20/1/5) beim ersten Dart
+      const firstSegCounts = { 20: 0, 1: 0, 5: 0 };
+      firstDarts.forEach(t => {
+        if (t.segment === 20) firstSegCounts[20]++;
+        if (t.segment === 1)  firstSegCounts[1]++;
+        if (t.segment === 5)  firstSegCounts[5]++;
+      });
+
+      // First-Dart-Hit-Map: meist getroffener erster Segment
+      const firstHitPerSegment = new Map();
+      firstDarts.forEach(t => {
+        if (t.segment == null) return;
+        const key = t.segment;
+        firstHitPerSegment.set(key, (firstHitPerSegment.get(key) || 0) + 1);
+      });
+      let firstHitTopSegment = null;
+      let firstHitTopCount = 0;
+      firstHitPerSegment.forEach((cnt, seg) => {
+        if (cnt > firstHitTopCount) {
+          firstHitTopCount = cnt;
+          firstHitTopSegment = seg;
+        }
+      });
+
+      // Finishing
+      let checkoutHitsTotal = 0;
+      let checkoutAttemptsTotal = 0;
+
+      let checkoutHitsDouble = 0;
+      let checkoutAttemptsDouble = 0;
+
+      let checkoutHits40 = 0;
+      let checkoutAttempts40 = 0;
+
+      const finishByDoubleSegment = new Map(); // attempts/hits per D-Segment
+      const finishHitsBySegment = new Map();   // nur Hits: Segment+Mult -> Count
+
+      // Für Darts bis Leggewinn & Matchdarts
+      const throwsByMatchPlayer = new Map(); // key: matchId|playerName -> [throws]
+      filteredThrows.forEach(t => {
+        const key = `${t.matchId || "unknown"}|${t.playerName || "unknown"}`;
+        if (!throwsByMatchPlayer.has(key)) {
+          throwsByMatchPlayer.set(key, []);
+        }
+        throwsByMatchPlayer.get(key).push(t);
+      });
+
+      let missedMatchDarts = 0;
+
+      filteredThrows.forEach(t => {
+        const score = t.score || 0;
+        const sBefore = t.scoreBefore;
+        const remaining = t.remaining;
+
+        // "Checkout-Situationen" grob approximiert:
+        if (typeof sBefore === "number" && sBefore > 0 && sBefore <= 170) {
+          checkoutAttemptsTotal++;
+          if (t.isCheckout) {
+            checkoutHitsTotal++;
+          }
+        }
+
+        // Double-Checkout-Versuche (sBefore <= 40 & gerade & Double)
+        if (typeof sBefore === "number" &&
+            sBefore > 0 &&
+            sBefore <= 40 &&
+            sBefore % 2 === 0 &&
+            t.multiplier === 2) {
+          checkoutAttemptsDouble++;
+
+          const seg = t.segment;
+          const dKey = seg;
+          if (!finishByDoubleSegment.has(dKey)) {
+            finishByDoubleSegment.set(dKey, { attempts: 0, hits: 0 });
+          }
+          const entry = finishByDoubleSegment.get(dKey);
+          entry.attempts++;
+
+          if (t.isCheckout) {
+            checkoutHitsDouble++;
+            entry.hits++;
+          } else {
+            missedMatchDarts++;
+          }
+        }
+
+        // Rest 40
+        if (sBefore === 40) {
+          checkoutAttempts40++;
+          if (t.isCheckout) {
+            checkoutHits40++;
+          }
+        }
+
+        // Beliebtestes Finish (egal ob Single/Double) – nur Hits
+        if (t.isCheckout) {
+          let label;
+          if (t.segment === 25) {
+            label = t.multiplier === 2 ? "Bullseye" : "Bull";
+          } else if (t.multiplier === 2) {
+            label = `D${t.segment}`;
+          } else if (t.multiplier === 3) {
+            label = `T${t.segment}`;
+          } else {
+            label = `${t.segment}`;
+          }
+          finishHitsBySegment.set(label, (finishHitsBySegment.get(label) || 0) + 1);
+        }
+      });
+
+      // Beliebtestes Finish
+      let favouriteFinish = null;
+      let favouriteFinishCount = 0;
+      finishHitsBySegment.forEach((cnt, label) => {
+        if (cnt > favouriteFinishCount) {
+          favouriteFinishCount = cnt;
+          favouriteFinish = label;
+        }
+      });
+
+      // Erfolgreichste Doppel (beste Erfolgsquote unter Double-Areas)
+      let bestDoubleLabel = null;
+      let bestDoubleRate = null;
+      finishByDoubleSegment.forEach((data, seg) => {
+        if (data.attempts > 0) {
+          const rate = (data.hits / data.attempts) * 100;
+          if (bestDoubleRate === null || rate > bestDoubleRate) {
+            bestDoubleRate = rate;
+            bestDoubleLabel = `D${seg}`;
+          }
+        }
+      });
+
+      const checkoutRateTotal = checkoutAttemptsTotal > 0
+        ? (checkoutHitsTotal / checkoutAttemptsTotal) * 100
+        : null;
+
+      const checkoutRateDouble = checkoutAttemptsDouble > 0
+        ? (checkoutHitsDouble / checkoutAttemptsDouble) * 100
+        : null;
+
+      const checkoutRate40 = checkoutAttempts40 > 0
+        ? (checkoutHits40 / checkoutAttempts40) * 100
+        : null;
+
+      // Ø Darts bis Leggewinn
+      // pro Leg (matchId|player) den letzten Checkout-Dart nehmen
+      const dartCountsForFinishedLegs = [];
+      throwsByMatchPlayer.forEach((arr, key) => {
+        const checkouts = arr.filter(t => t.isCheckout);
+        if (checkouts.length === 0) return;
+        // letzten Checkout im Zeitverlauf
+        checkouts.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+        const fin = checkouts[checkouts.length - 1];
+        const finTime = fin.timestamp ? new Date(fin.timestamp).getTime() : null;
+
+        let dartsCount;
+        if (finTime) {
+          dartsCount = arr.filter(x => {
+            if (!x.timestamp) return true;
+            return new Date(x.timestamp).getTime() <= finTime;
+          }).length;
+        } else {
+          dartsCount = arr.length;
+        }
+        dartCountsForFinishedLegs.push(dartsCount);
+      });
+
+      const avgDartsPerLeg = dartCountsForFinishedLegs.length > 0
+        ? dartCountsForFinishedLegs.reduce((a,b)=>a+b,0) / dartCountsForFinishedLegs.length
+        : null;
+
+      // Segment Analyse
+      const segmentHits = new Map(); // 1–20
+      const multiplierHits = { 1: 0, 2: 0, 3: 0 };
+      let bullOuter = 0;
+      let bullInner = 0;
+      let zeroScores = 0;
+
+      filteredThrows.forEach(t => {
+        const seg = t.segment;
+        const mul = t.multiplier || 1;
+        const sc  = t.score || 0;
+
+        if (sc === 0) zeroScores++;
+
+        if (mul === 1 || mul === 2 || mul === 3) {
+          multiplierHits[mul]++;
+        }
+
+        if (seg === 25) {
+          if (mul === 2) bullInner++;
+          else bullOuter++;
+        } else if (typeof seg === "number" && seg >= 1 && seg <= 20) {
+          segmentHits.set(seg, (segmentHits.get(seg) || 0) + 1);
+        }
+      });
+
+      // Streaks – nach Zeit sortiert
+      const ordered = [...filteredThrows].sort((a, b) => {
+        const ta = new Date(a.timestamp || 0).getTime();
+        const tb = new Date(b.timestamp || 0).getTime();
+        return ta - tb;
+      });
+
+      let bestHotStreakLen = 0;
+      let currentHotLen = 0;
+      let bestColdStreakLen = 0;
+      let currentColdLen = 0;
+
+      ordered.forEach(t => {
+        const s = t.score || 0;
+
+        // Serie >= 20
+        if (s >= 20) {
+          currentHotLen++;
+          if (currentHotLen > bestHotStreakLen) bestHotStreakLen = currentHotLen;
+        } else {
+          currentHotLen = 0;
+        }
+
+        // Pechsträhne < 10
+        if (s < 10) {
+          currentColdLen++;
+          if (currentColdLen > bestColdStreakLen) bestColdStreakLen = currentColdLen;
+        } else {
+          currentColdLen = 0;
+        }
+      });
+
+      // Hot / Cold Phase – beste / schlechteste 10 Pfeile
+      const windowSize = Math.min(10, ordered.length);
+      let best10Avg = null;
+      let worst10Avg = null;
+
+      if (windowSize > 0) {
+        const scoresOrdered = ordered.map(t => t.score || 0);
+
+        // Sliding Window
+        let sum = 0;
+        for (let i = 0; i < scoresOrdered.length; i++) {
+          sum += scoresOrdered[i];
+          if (i >= windowSize) {
+            sum -= scoresOrdered[i - windowSize];
+          }
+          if (i >= windowSize - 1) {
+            const avg = sum / windowSize;
+            if (best10Avg === null || avg > best10Avg) best10Avg = avg;
+            if (worst10Avg === null || avg < worst10Avg) worst10Avg = avg;
+          }
+        }
+      }
+
+      // Anzahl Spieler innerhalb der Filter
+      const playersSet = new Set(filteredThrows.map(t => t.playerName).filter(Boolean));
+
+      return {
+        general: {
+          avgPerDart,
+          avgPerTurn,
+          totalScore,
+          totalDarts: darts,
+          highestScore,
+          lowestScoreNoZero,
+          stdDev,
+          consistencyIndex,
+          turnsOver60:  countTurns60,
+          turnsOver100: countTurns100,
+          turnsOver140: countTurns140,
+          turnsOver180: countTurns180,
+          avgTurnsPerLeg,
+          avgRestAfterFirstTurn,
+          legsCount,
+          playersCount: playersSet.size
+        },
+        firstDart: {
+          count: firstDartCount,
+          avgFirstDart,
+          t20FirstCount: firstT20Hits,
+          t20FirstRate,
+          segCounts: firstSegCounts,
+          firstHitTopSegment,
+          firstHitTopCount
+        },
+        finishing: {
+          checkoutRateTotal,
+          checkoutRateDouble,
+          checkoutRate40,
+          favouriteFinish,
+          favouriteFinishCount,
+          bestDoubleLabel,
+          bestDoubleRate,
+          avgDartsPerLeg,
+          missedMatchDarts
+        },
+        segment: {
+          segmentHits,
+          multiplierHits,
+          bullOuter,
+          bullInner,
+          zeroScores
+        },
+        streaks: {
+          bestHotStreakLen,
+          bestColdStreakLen,
+          best10Avg,
+          worst10Avg
+        }
+      };
+    }
+
+    // ---------------------------
+    // Head-to-Head Stats
+    // ---------------------------
+    function computeHeadToHead(selectedPlayer, filteredThrows, filteredMatches) {
+      if (!selectedPlayer || selectedPlayer === "ALL") return null;
+
+      const throwsByMatch = new Map();
+      filteredThrows.forEach(t => {
+        if (!t.matchId) return;
+        if (t.playerName !== selectedPlayer) return;
+        if (!throwsByMatch.has(t.matchId)) {
+          throwsByMatch.set(t.matchId, []);
+        }
+        throwsByMatch.get(t.matchId).push(t);
+      });
+
+      const byOpponent = new Map(); // opponentName -> stats
+
+      filteredMatches.forEach(m => {
+        if (!m.players || !Array.isArray(m.players)) return;
+        if (!m.players.includes(selectedPlayer)) return;
+
+        const opponents = m.players.filter(p => p !== selectedPlayer);
+        if (opponents.length === 0) return;
+
+        const matchThrows = throwsByMatch.get(m.matchId) || [];
+        const matchScoreSum = matchThrows.reduce((sum, t) => sum + (t.score || 0), 0);
+        const matchDarts    = matchThrows.length;
+
+        // Checkout-Approx: wie oben
+        let chkAttempts = 0;
+        let chkHits     = 0;
+        matchThrows.forEach(t => {
+          const sBefore = t.scoreBefore;
+          if (typeof sBefore === "number" && sBefore > 0 && sBefore <= 170) {
+            chkAttempts++;
+            if (t.isCheckout) chkHits++;
+          }
+        });
+
+        opponents.forEach(opp => {
+          if (!byOpponent.has(opp)) {
+            byOpponent.set(opp, {
+              opponent: opp,
+              matches: 0,
+              wins: 0,
+              losses: 0,
+              totalScore: 0,
+              totalDarts: 0,
+              checkoutAttempts: 0,
+              checkoutHits: 0
+            });
+          }
+          const rec = byOpponent.get(opp);
+          rec.matches += 1;
+          if (m.winnerName === selectedPlayer) rec.wins += 1;
+          else rec.losses += 1;
+
+          rec.totalScore += matchScoreSum;
+          rec.totalDarts += matchDarts;
+          rec.checkoutAttempts += chkAttempts;
+          rec.checkoutHits     += chkHits;
+        });
+      });
+
+      return Array.from(byOpponent.values());
+    }
+
+    // ---------------------------
+    // Render-Funktionen
+    // ---------------------------
+    function renderStatsBoxes(stats) {
+      // General
+      statsGeneralEl.innerHTML = "";
+      statsFirstDartEl.innerHTML = "";
+      statsFinishingEl.innerHTML = "";
+      statsSegmentEl.innerHTML = "";
+      statsStreaksEl.innerHTML = "";
+
+      if (!stats) {
+        const msg = '<p class="small">Keine Daten für diese Filterkombination gefunden.</p>';
+        statsGeneralEl.innerHTML = msg;
+        statsFirstDartEl.innerHTML = msg;
+        statsFinishingEl.innerHTML = msg;
+        statsSegmentEl.innerHTML = msg;
+        statsStreaksEl.innerHTML = msg;
+        return;
+      }
+
+      const g = stats.general;
+      const f = stats.firstDart;
+      const fin = stats.finishing;
+      const seg = stats.segment;
+      const st  = stats.streaks;
+
+      function box(parent, label, value, sub = "") {
+        const div = document.createElement("div");
+        div.className = "stat-box";
+        div.innerHTML = `
+          <div class="stat-label">${label}</div>
+          <div class="stat-value">${value}</div>
+          ${sub ? `<div class="stat-sub">${sub}</div>` : ""}
+        `;
+        parent.appendChild(div);
+      }
+
+      // GENERAL
+      box(
+        statsGeneralEl,
+        "Ø Punkte pro Pfeil",
+        g.avgPerDart.toFixed(2),
+        `≈ ${(g.avgPerTurn || 0).toFixed(1)} Punkte / Aufnahme`
+      );
+      box(
+        statsGeneralEl,
+        "Ø Punkte pro Aufnahme",
+        (g.avgPerTurn || 0).toFixed(1),
+        `${g.totalDarts} Darts, ${g.legsCount || 0} Legs`
+      );
+      box(
+        statsGeneralEl,
+        "Total Score",
+        g.totalScore,
+        `Total Darts: ${g.totalDarts} • Spieler: ${g.playersCount}`
+      );
+      box(
+        statsGeneralEl,
+        "Highest / Lowest",
+        `${g.highestScore}${g.lowestScoreNoZero != null ? " / " + g.lowestScoreNoZero : ""}`,
+        "Lowest ohne 0"
+      );
+      box(
+        statsGeneralEl,
+        "Std-Abw / Consistency",
+        `${g.stdDev.toFixed(2)}`,
+        g.consistencyIndex != null
+          ? `Consistency Index: ${g.consistencyIndex.toFixed(2)}`
+          : "Consistency Index: –"
+      );
+      box(
+        statsGeneralEl,
+        "Aufnahmen > 60 / 100 / 140 / 180",
+        `${g.turnsOver60} / ${g.turnsOver100} / ${g.turnsOver140} / ${g.turnsOver180}`,
+        "nach Turn-Score"
+      );
+      box(
+        statsGeneralEl,
+        "Ø Aufnahmen pro Leg",
+        g.avgTurnsPerLeg != null ? g.avgTurnsPerLeg.toFixed(2) : "–",
+        "nur Legs mit Checkout"
+      );
+      box(
+        statsGeneralEl,
+        "Ø Rest nach 1. Aufnahme",
+        g.avgRestAfterFirstTurn != null ? g.avgRestAfterFirstTurn.toFixed(1) : "–",
+        "Restpunkte nach Turn 1"
+      );
+
+      // FIRST DART
+      box(
+        statsFirstDartEl,
+        "Ø erster Dart",
+        f.avgFirstDart.toFixed(2),
+        `${f.count} erste Darts`
+      );
+      box(
+        statsFirstDartEl,
+        "T20-Rate 1. Dart",
+        `${f.t20FirstRate.toFixed(1)} %`,
+        `${f.t20FirstCount}× T20 als erster Dart`
+      );
+      box(
+        statsFirstDartEl,
+        "Segment-Treffer (20 / 1 / 5)",
+        `${f.segCounts[20]} / ${f.segCounts[1]} / ${f.segCounts[5]}`,
+        "nur erster Dart"
+      );
+
+      let hitMapSub = "–";
+      if (f.firstHitTopSegment != null) {
+        hitMapSub = `Top-Segment: ${f.firstHitTopSegment} (${f.firstHitTopCount} Treffer)`;
+      }
+      box(
+        statsFirstDartEl,
+        "First-Dart-Hit-Map",
+        f.firstHitTopSegment != null ? f.firstHitTopSegment : "–",
+        hitMapSub
+      );
+
+      // FINISHING
+      box(
+        statsFinishingEl,
+        "Checkout-Quote (gesamt)",
+        fin.checkoutRateTotal != null ? fin.checkoutRateTotal.toFixed(1) + " %" : "–",
+        ""
+      );
+      box(
+        statsFinishingEl,
+        "Checkout-Quote Double",
+        fin.checkoutRateDouble != null ? fin.checkoutRateDouble.toFixed(1) + " %" : "–",
+        "Versuche mit Doppel"
+      );
+      box(
+        statsFinishingEl,
+        "Checkout-Quote bei Rest 40",
+        fin.checkoutRate40 != null ? fin.checkoutRate40.toFixed(1) + " %" : "–",
+        "sBefore = 40"
+      );
+      box(
+        statsFinishingEl,
+        "Beliebtestes Finish",
+        fin.favouriteFinish || "–",
+        fin.favouriteFinishCount
+          ? `${fin.favouriteFinishCount} Abschlüsse`
+          : ""
+      );
+      box(
+        statsFinishingEl,
+        "Erfolgreichste Doppel",
+        fin.bestDoubleLabel || "–",
+        fin.bestDoubleRate != null
+          ? `${fin.bestDoubleRate.toFixed(1)} % Erfolgsquote`
+          : ""
+      );
+      box(
+        statsFinishingEl,
+        "Ø Darts bis Leggewinn",
+        fin.avgDartsPerLeg != null ? fin.avgDartsPerLeg.toFixed(1) : "–",
+        "nur Legs mit Checkout"
+      );
+      box(
+        statsFinishingEl,
+        "Verpasste Matchdarts",
+        fin.missedMatchDarts,
+        "Double-Versuche ≤ 40 ohne Checkout"
+      );
+
+      // SEGMENT
+      const sHits = seg.segmentHits;
+      let topSegmentLabel = "–";
+      let topSegmentCount = 0;
+      sHits.forEach((cnt, segVal) => {
+        if (cnt > topSegmentCount) {
+          topSegmentCount = cnt;
+          topSegmentLabel = segVal;
+        }
+      });
+
+      box(
+        statsSegmentEl,
+        "Top-Segment (1–20)",
+        topSegmentLabel,
+        topSegmentCount ? `${topSegmentCount} Treffer` : ""
+      );
+      box(
+        statsSegmentEl,
+        "Treffer S / D / T",
+        `${seg.multiplierHits[1]} / ${seg.multiplierHits[2]} / ${seg.multiplierHits[3]}`,
+        "Single / Double / Triple"
+      );
+      box(
+        statsSegmentEl,
+        "Bull / Bullseye",
+        `${seg.bullOuter} / ${seg.bullInner}`,
+        "Treffer Outer / Inner Bull"
+      );
+      box(
+        statsSegmentEl,
+        "0-Punkte-Würfe",
+        seg.zeroScores,
+        ""
+      );
+
+      // STREAKS
+      box(
+        statsStreaksEl,
+        "Beste Serie ≥ 20",
+        st.bestHotStreakLen,
+        "aufeinanderfolgende Würfe"
+      );
+      box(
+        statsStreaksEl,
+        "Längste Pechsträhne < 10",
+        st.bestColdStreakLen,
+        "aufeinanderfolgende Würfe"
+      );
+      box(
+        statsStreaksEl,
+        "Hot Phase (10 Darts)",
+        st.best10Avg != null ? st.best10Avg.toFixed(1) : "–",
+        "beste 10-Wurf-Phase (Ø)"
+      );
+      box(
+        statsStreaksEl,
+        "Cold Phase (10 Darts)",
+        st.worst10Avg != null ? st.worst10Avg.toFixed(1) : "–",
+        "schlechteste 10-Wurf-Phase (Ø)"
+      );
+    }
+
+    // Tabelle "letzte Würfe"
+    function renderThrowsTable(filteredThrows) {
+      throwsTableBody.innerHTML = "";
+
+      const sorted = [...filteredThrows].sort((a, b) => {
+        const ta = new Date(a.timestamp || 0).getTime();
+        const tb = new Date(b.timestamp || 0).getTime();
+        return tb - ta;
+      }).slice(0, 30);
+
+      sorted.forEach(t => {
+        const tr = document.createElement("tr");
+        const time = t.timestamp ? new Date(t.timestamp).toLocaleString() : "-";
+        const field =
+          t.segment === 0
+            ? "0"
+            : (t.segment === 25
+                ? (t.multiplier === 2 ? "Bullseye" : "Bull")
+                : (t.multiplier === 2
+                    ? `D${t.segment}`
+                    : (t.multiplier === 3 ? `T${t.segment}` : `${t.segment}`)));
+
+        tr.innerHTML = `
+          <td>${time}</td>
+          <td>${t.playerName || "-"}</td>
+          <td>${t.teamName || "-"}</td>
+          <td>${t.turnNumber || "-"} / ${t.dartInTurn || "-"}</td>
+          <td>${field}</td>
+          <td>${t.score ?? "-"}</td>
+          <td>${t.remaining ?? "-"}</td>
+          <td>
+            ${t.isCheckout
+              ? '<span class="badge checkout">Checkout</span>'
+              : '<span class="badge">–</span>'}
+          </td>
+        `;
+        throwsTableBody.appendChild(tr);
+      });
+    }
+
+    // Chart
+    function renderChart(filteredThrows) {
+      const perDay = new Map();
+      filteredThrows.forEach(t => {
+        if (!t.timestamp) return;
+        const d = new Date(t.timestamp);
+        if (isNaN(d.getTime())) return;
+        const dayKey = d.toISOString().slice(0, 10);
+        if (!perDay.has(dayKey)) {
+          perDay.set(dayKey, { score: 0, darts: 0 });
+        }
+        const el = perDay.get(dayKey);
+        el.score += t.score || 0;
+        el.darts++;
+      });
+
+      const labels = Array.from(perDay.keys()).sort();
+      const data = labels.map(day => {
+        const { score, darts } = perDay.get(day);
+        return darts > 0 ? score / darts : 0;
+      });
+
+      const ctx = document.getElementById("scoreTimeChart").getContext("2d");
+      if (chartInstance) chartInstance.destroy();
+
+      chartInstance = new Chart(ctx, {
+        type: "line",
+        data: {
+          labels,
+          datasets: [
+            {
+              label: "Ø Punkte / Pfeil",
+              data,
+              fill: false,
+              tension: 0.2
+            }
+          ]
+        },
+        options: {
+          responsive: true,
+          scales: {
+            x: { title: { display: true, text: "Datum" } },
+            y: {
+              title: { display: true, text: "Ø Punkte / Pfeil" },
+              beginAtZero: true
+            }
+          }
+        }
+      });
+
+      const player = playerFilterEl.value;
+      const mode   = modeFilterEl.value;
+      let desc = "Ø Punkte pro Pfeil nach Datum – ";
+      desc += player === "ALL" ? "alle Spieler" : `Spieler: ${player}`;
+      if (mode !== "ALL") {
+        desc += `, Modus: ${mode}`;
+      }
+      chartDescEl.textContent = desc;
+    }
+
+    // Head-to-Head rendern
+    function renderHeadToHead(selectedPlayer, filteredThrows, filteredMatches) {
+      h2hTableBody.innerHTML = "";
+
+      if (!selectedPlayer || selectedPlayer === "ALL") {
+        h2hDescEl.textContent = "Wähle oben einen Spieler, um direkte Duelle zu sehen.";
+        return;
+      }
+
+      const h2h = computeHeadToHead(selectedPlayer, filteredThrows, filteredMatches);
+      if (!h2h || h2h.length === 0) {
+        h2hDescEl.textContent = "Keine Head-to-Head-Daten für diesen Spieler und Filter.";
+        return;
+      }
+
+      h2hDescEl.textContent = `Direkte Duelle für ${selectedPlayer} (nach aktuellem Filter).`;
+
+      h2h.forEach(rec => {
+        const avg = rec.totalDarts > 0 ? (rec.totalScore / rec.totalDarts) : 0;
+        const chkRate = rec.checkoutAttempts > 0
+          ? (rec.checkoutHits / rec.checkoutAttempts) * 100
+          : 0;
+
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+          <td>${rec.opponent}</td>
+          <td>${rec.matches}</td>
+          <td>${rec.wins} / ${rec.losses}</td>
+          <td>${avg.toFixed(2)}</td>
+          <td>${rec.checkoutAttempts > 0 ? chkRate.toFixed(1) + " %" : "–"}</td>
+        `;
+        h2hTableBody.appendChild(tr);
+      });
+    }
+
+    // ---------------------------
+    // Alles neu zeichnen
+    // ---------------------------
+    function renderAll() {
+      const filteredThrows  = getFilteredThrows();
+      const filteredMatches = getFilteredMatches();
+      const stats = computeAdvancedStats(filteredThrows);
+
+      renderStatsBoxes(stats);
+      renderThrowsTable(filteredThrows);
+      renderChart(filteredThrows);
+      renderHeadToHead(playerFilterEl.value, filteredThrows, filteredMatches);
+    }
+
+    playerFilterEl.addEventListener("change", renderAll);
+    modeFilterEl.addEventListener("change", renderAll);
+
+    loadData().catch(err => {
+      console.error("Fehler beim Laden aus Firestore:", err);
+      statsGeneralEl.innerHTML =
+        '<p class="small">Fehler beim Laden der Daten. Siehe Konsole.</p>';
+    });
+  </script>
+</body>
+</html>
